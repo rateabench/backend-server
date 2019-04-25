@@ -1,7 +1,7 @@
 {
   "benches": [
-    { "id": 1, "title": "Botan", "lat": 55.703156, "lng": 13.202897 },
-    { "id": 2, "title": "Stadsparken", "lat": 55.697942, "lng": 13.184473 },
-    { "id": 3, "title": "MAX IV", "lat": 55.726483, "lng": 13.230816 }
+    { "id": 1, "name": "Botan", "lat": 55.703156, "lng": 13.202897 },
+    { "id": 2, "name": "Stadsparken", "lat": 55.697942, "lng": 13.184473 },
+    { "id": 3, "name": "MAX IV", "lat": 55.726483, "lng": 13.230816 }
   ]
 }
