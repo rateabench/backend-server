@@ -1,0 +1,9 @@
+docker-env
+hikari.properties
+/.gradle
+/.idea
+/out
+/build
+*.iml
+*.ipr
+*.iws
