@@ -25,7 +25,7 @@ data class Coordinate(
         fun getByPK(id: Long): Coordinate? {
             return prepareStatement("SELECT $PK,$COLS FROM $TABLE WHERE $PK = ?") {
                 setLong(1, id)
-                execute(connection, this) {
+                executeQuery(connection, this) {
                     getSingle(this)
                 }
 
@@ -53,7 +53,7 @@ data class User(
         fun getByPK(id: Long): User? {
             return prepareStatement("SELECT $PK,$COLS FROM $TABLE WHERE $PK = ?") {
                 setLong(1, id)
-                execute(connection, this) {
+                executeQuery(connection, this) {
                     getSingle(this)
                 }
 
@@ -90,7 +90,7 @@ data class Bench(
         fun getByPK(id: Long): Bench? {
             return prepareStatement("SELECT $PK,$COLS FROM $TABLE WHERE $PK = ?") { connection ->
                 setLong(1, id)
-                execute(connection, this) {
+                executeQuery(connection, this) {
                     if (next()) parse(this) else null
                 }
             }
@@ -102,9 +102,20 @@ data class Bench(
             }
         }
 
+        fun updateImageURL(id: Long, url: String): Boolean {
+            val res = transaction {
+                prepareStatement("UPDATE ${getTable()} SET image_url = ? WHERE $PK = ?") { conn ->
+                    setString(1, url)
+                    setLong(2, id)
+                    executeUpdate(conn, this)
+                }
+            }
+            return res == 1
+        }
+
         fun insert(bench: PostBench): Boolean {
             val res = transaction {
-                val stmt = prepareStatement(
+                prepareStatement(
                     """
                 with ins1 as (
                     insert into ${Coordinate.getTable()} (lat, lng)
@@ -116,11 +127,12 @@ data class Bench(
                 select coordinate_id, ?
                 from ins1
                 """.trimIndent()
-                )
-                stmt.setDouble(1, bench.lat)
-                stmt.setDouble(2, bench.lng)
-                stmt.setLong(3, bench.creatorId)
-                stmt.executeUpdate()
+                ) { conn ->
+                    setDouble(1, bench.lat)
+                    setDouble(2, bench.lng)
+                    setLong(3, bench.creatorId)
+                    executeUpdate(conn, this)
+                }
             }
             return res == 1
         }
@@ -145,7 +157,7 @@ data class RatingType(
         fun getByPK(name: String): RatingType? {
             return prepareStatement("SELECT $PK,$COLS FROM $TABLE WHERE $PK = ?") { connection ->
                 setString(1, name)
-                execute(connection, this) {
+                executeQuery(connection, this) {
                     if (next()) parse(this) else null
                 }
             }
@@ -172,7 +184,7 @@ data class Review(
         fun getByPK(id: Long): Review? {
             return prepareStatement("SELECT $PK,$COLS FROM $TABLE WHERE $PK = ?") {
                 setLong(1, id)
-                execute(connection, this) {
+                executeQuery(connection, this) {
                     if (next()) parse(this) else null
                 }
             }
@@ -202,7 +214,7 @@ data class Rating(
         fun getByPK(id: Long): Rating? {
             return prepareStatement("SELECT $PK,$COLS FROM $TABLE WHERE $PK = ?") {
                 setLong(1, id)
-                execute(connection, this) {
+                executeQuery(connection, this) {
                     if (next()) parse(this) else null
                 }
             }
@@ -232,7 +244,7 @@ data class Vote(
         fun getByPK(id: Long): Vote? {
             return prepareStatement("SELECT $PK,$COLS FROM $TABLE WHERE $PK = ?") {
                 setLong(1, id)
-                execute(connection, this) {
+                executeQuery(connection, this) {
                     if (next()) parse(this) else null
                 }
             }

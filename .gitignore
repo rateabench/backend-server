@@ -1,3 +1,4 @@
+env.sh
 docker-env
 hikari.properties
 /.gradle

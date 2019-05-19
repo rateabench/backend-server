@@ -20,16 +20,6 @@ import io.ktor.sessions.get
 import io.ktor.sessions.sessions
 import io.ktor.sessions.set
 
-/**
- * Created by Jonathan Schurmann on 5/16/19.
- */
-
-class Constants {
-    companion object {
-        const val VERSION = "/v1"
-    }
-}
-
 const val V = Constants.VERSION
 
 @Location("$V/benches/{id}")

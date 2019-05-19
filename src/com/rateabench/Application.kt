@@ -153,6 +153,7 @@ fun Application.module(testing: Boolean = true) {
 
     routing {
         api()
+        upload()
     }
 }
 

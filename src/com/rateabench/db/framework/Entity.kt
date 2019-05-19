@@ -60,13 +60,19 @@ abstract class Entity<T : Any>(private val cls: KClass<T>) {
         return entities
     }
 
-    inline fun prepareStatement(query: String, block: PreparedStatement.(conn: Connection) -> T?): T? {
+    inline fun <T> prepareStatement(query: String, block: PreparedStatement.(conn: Connection) -> T?): T? {
         val conn = DataSource.getConnection()
         val stmt = conn.prepareStatement(query)
         return block(stmt, conn)
     }
 
-    inline fun <T> execute(connection: Connection, stmt: PreparedStatement, block: ResultSet.() -> T?): T? {
+    fun  executeUpdate(connection: Connection, stmt: PreparedStatement): Int {
+        val res = stmt.executeUpdate()
+        connection.close()
+        return res
+    }
+
+    inline fun <T> executeQuery(connection: Connection, stmt: PreparedStatement, block: ResultSet.() -> T?): T? {
         val rs = stmt.executeQuery()
         val instance = block(rs)
         connection.close()
@@ -78,6 +84,7 @@ abstract class Entity<T : Any>(private val cls: KClass<T>) {
         conn.autoCommit = false
         val res = f(conn)
         conn.commit()
+        conn.autoCommit = true
         conn.close()
         return res
     }
