@@ -15,6 +15,11 @@ group 'rateabench'
 version '0.0.1'
 mainClassName = "io.ktor.server.netty.EngineMain"
 
+compileKotlin {
+    kotlinOptions.jvmTarget = 1.8
+}
+
+
 sourceSets {
     main.kotlin.srcDirs = main.java.srcDirs = ['src']
     test.kotlin.srcDirs = test.java.srcDirs = ['test']
@@ -34,7 +39,7 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-reflect"
     compile "org.postgresql:postgresql:42.2.2"
     compile 'com.zaxxer:HikariCP:3.3.1'
-    compile 'com.beust:klaxon:5.0.1'
+    compile 'software.amazon.awssdk:aws-sdk-java:2.5.46'
     compile "io.ktor:ktor-server-netty:$ktor_version"
     compile "ch.qos.logback:logback-classic:$logback_version"
     compile "io.ktor:ktor-server-core:$ktor_version"
