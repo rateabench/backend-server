@@ -1,10 +1,10 @@
 package com.rateabench
 
 import com.google.gson.Gson
-import com.rateabench.db.Bench
+import com.rateabench.db.framework.BenchRepository
+import com.rateabench.db.framework.RatingRepository
+import com.rateabench.db.framework.ReviewRepository
 import io.ktor.application.call
-import io.ktor.application.install
-import io.ktor.features.StatusPages
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.locations.KtorExperimentalLocationsAPI
@@ -16,34 +16,49 @@ import io.ktor.response.respondText
 import io.ktor.routing.Routing
 import io.ktor.routing.get
 import io.ktor.routing.post
-import io.ktor.sessions.get
-import io.ktor.sessions.sessions
-import io.ktor.sessions.set
 
 const val V = Constants.VERSION
 
 @Location("$V/benches/{id}")
-class BenchRoute(val id: Long)
+class BenchRoute(val id: Long) {
+    @Location("/ratings")
+    class RatingRoute(val bench: BenchRoute)
+
+    @Location("/reviews")
+    class ReviewRoute(val bench: BenchRoute)
+
+}
 
 
 @KtorExperimentalLocationsAPI
 fun Routing.api() {
 
-    get("$V/benches") {
+    get<BenchRoute.ReviewRoute> { reviewRoute ->
+        val reviews = ReviewRepository.getReviewsByBenchId(reviewRoute.bench.id)
         call.respondText(
-            Gson().toJson(Bench.getAll()), ContentType.Application.Json
+            Gson().toJson(reviews),
+            ContentType.Application.Json
         )
     }
+
+    get<BenchRoute.RatingRoute> { ratingRoute ->
+        val ratings = RatingRepository.getRatingsByBenchId(ratingRoute.bench.id)
+        call.respondText(
+            Gson().toJson(ratings),
+            ContentType.Application.Json
+        )
+    }
+
     post("$V/benches") {
         val bench = call.receive<PostBench>()
         var statusCode = HttpStatusCode.Created
         if (!bench.isValid()) statusCode = HttpStatusCode.BadRequest
-        if (!Bench.insert(bench)) statusCode = HttpStatusCode.InternalServerError
+        if (!BenchRepository.insert(bench)) statusCode = HttpStatusCode.InternalServerError
         call.respond(statusCode)
     }
 
     get<BenchRoute> { benchRoute ->
-        val bench = Bench.getByPK(benchRoute.id)
+        val bench = BenchRepository.getByPK(benchRoute.id)
         if (bench == null) {
             call.respond(HttpStatusCode.NotFound)
         }
@@ -51,23 +66,13 @@ fun Routing.api() {
             Gson().toJson(bench),
             ContentType.Application.Json
         )
-
     }
 
-    get("/session/increment") {
-        val session = call.sessions.get<MySession>() ?: MySession()
-        call.sessions.set(session.copy(count = session.count + 1))
-        call.respondText("Counter is ${session.count}. Refresh to increment.")
+    get("$V/benches") {
+        val benches = BenchRepository.getAll()
+        call.respondText(
+            Gson().toJson(benches),
+            ContentType.Application.Json
+        )
     }
-
-    install(StatusPages) {
-        exception<AuthenticationException> { cause ->
-            call.respond(HttpStatusCode.Unauthorized)
-        }
-        exception<AuthorizationException> { cause ->
-            call.respond(HttpStatusCode.Forbidden)
-        }
-
-    }
-
 }

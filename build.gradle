@@ -40,6 +40,7 @@ dependencies {
     compile "org.postgresql:postgresql:42.2.2"
     compile 'com.zaxxer:HikariCP:3.3.1'
     compile 'software.amazon.awssdk:aws-sdk-java:2.5.46'
+    compile 'commons-io:commons-io:2.6'
     compile "io.ktor:ktor-server-netty:$ktor_version"
     compile "ch.qos.logback:logback-classic:$logback_version"
     compile "io.ktor:ktor-server-core:$ktor_version"

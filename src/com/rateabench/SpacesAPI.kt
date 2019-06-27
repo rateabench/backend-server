@@ -1,10 +1,13 @@
 package com.rateabench
 
+import software.amazon.awssdk.auth.credentials.EnvironmentVariableCredentialsProvider
 import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.core.sync.ResponseTransformer
+import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
+import software.amazon.awssdk.services.s3.model.ObjectCannedACL
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import java.io.InputStream
 import java.net.URI
@@ -16,15 +19,18 @@ import java.net.URI
 class SpacesAPI {
     companion object {
         private const val bucketName = "imagesbucket"
-        private val client: S3Client =
-            S3Client.builder()
+        val client: S3Client =
+            S3Client.builder().credentialsProvider(EnvironmentVariableCredentialsProvider.create())
+                .region(Region.of("ams3"))
                 .endpointOverride(
                     URI.create(Constants.SPACES_URL)
                 ).build()
 
         fun uploadFile(key: String, bytes: ByteArray): String {
             client.putObject(
-                PutObjectRequest.builder().bucket(bucketName).key(key).build(),
+                PutObjectRequest.builder().bucket(bucketName).contentLength(bytes.size.toLong()).contentType("image/jpeg").key(
+                    key
+                ).acl(ObjectCannedACL.PUBLIC_READ).build(),
                 RequestBody.fromBytes(bytes)
             )
             return "${Constants.SPACES_URL}$bucketName/$key"
@@ -42,6 +48,4 @@ class SpacesAPI {
             return "${Constants.SPACES_URL}$bucketName/$key"
         }
     }
-
-
 }

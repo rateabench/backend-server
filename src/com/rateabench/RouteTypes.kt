@@ -19,5 +19,5 @@ open class PostValidatable {
 }
 
 data class PostBench(val lat: Double, val lng: Double, val creatorId: Long) : PostValidatable()
-data class PostImage(val benchId: Long) : PostValidatable()
+data class PostImage(val benchId: Long, val image: String) : PostValidatable()
 

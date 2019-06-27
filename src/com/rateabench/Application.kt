@@ -21,14 +21,11 @@ import io.ktor.http.content.CachingOptions
 import io.ktor.locations.Locations
 import io.ktor.request.path
 import io.ktor.routing.routing
-import io.ktor.sessions.Sessions
-import io.ktor.sessions.cookie
 import io.ktor.util.KtorExperimentalAPI
 import io.ktor.util.date.GMTDate
 import kotlinx.coroutines.runBlocking
 import org.slf4j.event.Level
 import java.time.Duration
-import kotlin.collections.set
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
@@ -37,12 +34,6 @@ fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 @kotlin.jvm.JvmOverloads
 fun Application.module(testing: Boolean = true) {
     install(Locations) {
-    }
-
-    install(Sessions) {
-        cookie<MySession>("MY_SESSION") {
-            cookie.extensions["SameSite"] = "lax"
-        }
     }
 
     install(Compression) {
@@ -156,12 +147,3 @@ fun Application.module(testing: Boolean = true) {
         upload()
     }
 }
-
-
-data class MySession(val count: Int = 0)
-
-class AuthenticationException : RuntimeException()
-class AuthorizationException : RuntimeException()
-
-data class JsonSampleClass(val hello: String)
-

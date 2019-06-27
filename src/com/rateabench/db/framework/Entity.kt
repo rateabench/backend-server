@@ -8,10 +8,7 @@ import java.sql.Timestamp
 import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty
-import kotlin.reflect.full.declaredMemberProperties
-import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.full.findParameterByName
-import kotlin.reflect.full.primaryConstructor
+import kotlin.reflect.full.*
 
 /**
  * Created by Jonathan Schurmann on 5/10/19.
@@ -27,7 +24,6 @@ fun KProperty<*>.name(): String {
 abstract class Entity<T : Any>(private val cls: KClass<T>) {
     val COLS = getCols()
     abstract val TABLE: String
-    abstract val PK: String
 
     private fun getPrimaryKey(): String {
         if (!cls.annotations.any { it.annotationClass == Table::class })
@@ -52,29 +48,30 @@ abstract class Entity<T : Any>(private val cls: KClass<T>) {
         return entities
     }
 
-    fun executeSimple(query: String, block: PreparedStatement.(conn: Connection) -> List<T>): List<T> {
+    fun executeSimple(query: String, mapper: (rs: ResultSet) -> List<T>): List<T> {
         val conn = DataSource.getConnection()
         val stmt = conn.prepareStatement(query)
-        val entities = block(stmt, conn)
+        val rs = stmt.executeQuery()
+        val entities = mapper(rs)
         conn.close()
         return entities
     }
 
-    inline fun <T> prepareStatement(query: String, block: PreparedStatement.(conn: Connection) -> T?): T? {
+    inline fun <T> prepareStatement(query: String, block: PreparedStatement.(conn: Connection) -> T): T {
         val conn = DataSource.getConnection()
         val stmt = conn.prepareStatement(query)
         return block(stmt, conn)
     }
 
-    fun  executeUpdate(connection: Connection, stmt: PreparedStatement): Int {
+    fun executeUpdate(connection: Connection, stmt: PreparedStatement): Int {
         val res = stmt.executeUpdate()
         connection.close()
         return res
     }
 
-    inline fun <T> executeQuery(connection: Connection, stmt: PreparedStatement, block: ResultSet.() -> T?): T? {
+    inline fun <T> executeQuery(connection: Connection, stmt: PreparedStatement, mapper: ResultSet.() -> T): T {
         val rs = stmt.executeQuery()
-        val instance = block(rs)
+        val instance = mapper(rs)
         connection.close()
         return instance
     }
@@ -89,10 +86,10 @@ abstract class Entity<T : Any>(private val cls: KClass<T>) {
         return res
     }
 
-    fun parse(rs: ResultSet): T {
+    private fun parse(rs: ResultSet): T {
         val paramMap = mutableMapOf<KParameter, Any>()
         val fields =
-            cls.declaredMemberProperties.filter { it.findAnnotation<Column>() != null || it.findAnnotation<Id>() != null }
+            cls.memberProperties.filter { it.findAnnotation<Column>() != null || it.findAnnotation<Id>() != null }
         for (field in fields) {
             when (field.returnType.classifier) {
                 String::class -> {

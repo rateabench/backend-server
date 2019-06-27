@@ -1,14 +1,22 @@
 package com.rateabench.db
 
-import com.rateabench.PostBench
 import com.rateabench.db.framework.Column
-import com.rateabench.db.framework.Entity
 import com.rateabench.db.framework.Id
 import com.rateabench.db.framework.Table
+import java.sql.Timestamp
 
 /**
  * Created by Jonathan Schurmann on 5/8/19.
  */
+
+open class TimeStamps {
+    @Column("created_at")
+    lateinit var createdAt: Timestamp
+    @Column("updated_at")
+    lateinit var updatedAt: Timestamp
+}
+
+
 @Table("coordinates")
 data class Coordinate(
     @Id
@@ -17,22 +25,7 @@ data class Coordinate(
     val lat: Double,
     @Column
     val lng: Double
-) {
-    companion object : Entity<Coordinate>(Coordinate::class) {
-        override val TABLE = "coordinates"
-        override val PK = "$TABLE.id"
-
-        fun getByPK(id: Long): Coordinate? {
-            return prepareStatement("SELECT $PK,$COLS FROM $TABLE WHERE $PK = ?") {
-                setLong(1, id)
-                executeQuery(connection, this) {
-                    getSingle(this)
-                }
-
-            }
-        }
-    }
-}
+)
 
 @Table("users")
 data class User(
@@ -45,22 +38,7 @@ data class User(
     val lat: Double,
     @Column("lat", refTable = "coordinates")
     val lng: Double
-) {
-    companion object : Entity<User>(User::class) {
-        override val TABLE = "users"
-        override val PK = "$TABLE.id"
-
-        fun getByPK(id: Long): User? {
-            return prepareStatement("SELECT $PK,$COLS FROM $TABLE WHERE $PK = ?") {
-                setLong(1, id)
-                executeQuery(connection, this) {
-                    getSingle(this)
-                }
-
-            }
-        }
-    }
-}
+)
 
 @Table("benches")
 data class Bench(
@@ -79,65 +57,9 @@ data class Bench(
     @Column("lng", refTable = "coordinates")
     val lng: Double
 ) {
-    companion object : Entity<Bench>(Bench::class) {
-        override val TABLE: String
-            get() = """
-            benches left join coordinates on benches.coordinate_id = coordinates.id
-            left join users on benches.creator_id = users.id
-            """.trimIndent()
-        override val PK = "\"benches\".\"id\""
-
-        fun getByPK(id: Long): Bench? {
-            return prepareStatement("SELECT $PK,$COLS FROM $TABLE WHERE $PK = ?") { connection ->
-                setLong(1, id)
-                executeQuery(connection, this) {
-                    if (next()) parse(this) else null
-                }
-            }
-        }
-
-        fun getAll(): List<Bench> {
-            return executeSimple("SELECT $PK,$COLS FROM $TABLE") {
-                getMultiple(executeQuery())
-            }
-        }
-
-        fun updateImageURL(id: Long, url: String): Boolean {
-            val res = transaction {
-                prepareStatement("UPDATE ${getTable()} SET image_url = ? WHERE $PK = ?") { conn ->
-                    setString(1, url)
-                    setLong(2, id)
-                    executeUpdate(conn, this)
-                }
-            }
-            return res == 1
-        }
-
-        fun insert(bench: PostBench): Boolean {
-            val res = transaction {
-                prepareStatement(
-                    """
-                with ins1 as (
-                    insert into ${Coordinate.getTable()} (lat, lng)
-                        values (?, ?)
-                        returning id as coordinate_id
-                )
-                insert
-                into ${getTable()}(coordinate_id, creator_id)
-                select coordinate_id, ?
-                from ins1
-                """.trimIndent()
-                ) { conn ->
-                    setDouble(1, bench.lat)
-                    setDouble(2, bench.lng)
-                    setLong(3, bench.creatorId)
-                    executeUpdate(conn, this)
-                }
-            }
-            return res == 1
-        }
-    }
+    lateinit var ratings: List<Rating>
 }
+
 
 @Table("rating_types")
 data class RatingType(
@@ -149,78 +71,21 @@ data class RatingType(
     val min: Int,
     @Column
     val max: Int
-) {
-    companion object : Entity<RatingType>(RatingType::class) {
-        override val TABLE = "rating_types"
-        override val PK = "\"$TABLE\".\"name\""
-
-        fun getByPK(name: String): RatingType? {
-            return prepareStatement("SELECT $PK,$COLS FROM $TABLE WHERE $PK = ?") { connection ->
-                setString(1, name)
-                executeQuery(connection, this) {
-                    if (next()) parse(this) else null
-                }
-            }
-        }
-    }
-}
+)
 
 @Table("reviews")
 data class Review(
     @Id
     val id: Long,
     @Column
-    val text: String,
-    @Column(
-        "bench_id",
-        refTable = "benches",
-        refColumn = "id"
-    ) val benchId: Long
-) {
-    companion object : Entity<Review>(Review::class) {
-        override val TABLE = "reviews"
-        override val PK = "\"$TABLE\".\"id\""
-
-        fun getByPK(id: Long): Review? {
-            return prepareStatement("SELECT $PK,$COLS FROM $TABLE WHERE $PK = ?") {
-                setLong(1, id)
-                executeQuery(connection, this) {
-                    if (next()) parse(this) else null
-                }
-            }
-        }
-    }
-}
+    val text: String
+)
 
 @Table("ratings")
 data class Rating(
-    @Id
-    val id: Long,
-    @Column(
-        "bench_id",
-        refTable = "benches",
-        refColumn = "id"
-    ) val bench: Bench,
-    @Column(
-        "rating_type_name",
-        refTable = "rating_types",
-        refColumn = "name"
-    ) val ratingTypeName: String,
+    @Column("rating_type_name") val ratingTypeName: String,
     @Column val value: Int
-) {
-    companion object : Entity<Rating>(Rating::class) {
-        override val TABLE = "ratings"
-        override val PK = "\"$TABLE\".\"id\""
-        fun getByPK(id: Long): Rating? {
-            return prepareStatement("SELECT $PK,$COLS FROM $TABLE WHERE $PK = ?") {
-                setLong(1, id)
-                executeQuery(connection, this) {
-                    if (next()) parse(this) else null
-                }
-            }
-        }
-    }
-}
+)
 
 @Table("votes")
 data class Vote(
@@ -237,17 +102,4 @@ data class Vote(
         refColumn = "id"
     ) val userId: Long,
     @Column val value: Int
-) {
-    companion object : Entity<Vote>(Vote::class) {
-        override val TABLE = "votes"
-        override val PK = "\"$TABLE\".\"id\""
-        fun getByPK(id: Long): Vote? {
-            return prepareStatement("SELECT $PK,$COLS FROM $TABLE WHERE $PK = ?") {
-                setLong(1, id)
-                executeQuery(connection, this) {
-                    if (next()) parse(this) else null
-                }
-            }
-        }
-    }
-}
+)
